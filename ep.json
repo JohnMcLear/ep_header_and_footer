@@ -1,0 +1,17 @@
+{
+  "parts": [
+    {
+      "name": "header_and_footer",
+      "client_hooks": {
+        "postAceInit": "ep_header_and_footer/static/js/index:documentReady",
+        "handleClientMessage_CUSTOM": "ep_header_and_footer/static/js/index"
+      },
+      "hooks": {
+        "eejsBlock_globalSettings":"ep_header_and_footer/eejs",
+        "eejsBlock_styles":"ep_header_and_footer/eejs",
+        "handleMessage": "ep_header_and_footer/handleMessage",
+        "clientVars": "ep_header_and_footer/handleMessage"
+      }
+    }
+  ]
+}
