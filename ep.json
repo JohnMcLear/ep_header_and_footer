@@ -10,7 +10,8 @@
         "eejsBlock_globalSettings":"ep_header_and_footer/eejs",
         "eejsBlock_styles":"ep_header_and_footer/eejs",
         "handleMessage": "ep_header_and_footer/handleMessage",
-        "clientVars": "ep_header_and_footer/handleMessage"
+        "clientVars": "ep_header_and_footer/handleMessage",
+        "eejsBlock_dd_view" : "ep_header_and_footer/eejs"
       }
     }
   ]
