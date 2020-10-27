@@ -1,7 +1,7 @@
 {
   "name": "ep_header_and_footer",
   "description": "Set a header and footer on a pad",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "author": "johnyma22 (John McLear) <john@mclear.co.uk>",
   "dependencies": {},
   "engines": {
