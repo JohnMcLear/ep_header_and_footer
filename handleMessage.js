@@ -1,37 +1,36 @@
-/***
+/** *
 *
 * Responsible for negotiating messages between two clients
 *
 ****/
 
-var authorManager = require("../../src/node/db/AuthorManager"),
-padMessageHandler = require("../../src/node/handler/PadMessageHandler"),
-               db = require('ep_etherpad-lite/node/db/DB').db,
-            async = require('../../src/node_modules/async');
-
+const authorManager = require('../../src/node/db/AuthorManager');
+const padMessageHandler = require('../../src/node/handler/PadMessageHandler');
+const db = require('ep_etherpad-lite/node/db/DB').db;
+const async = require('../../src/node_modules/async');
 
 
 // Remove cache for this procedure
-db['dbSettings'].cache = 0;
+db.dbSettings.cache = 0;
 
-var buffer = {};
+const buffer = {};
 
-/* 
+/*
 * Handle incoming messages from clients
 */
-exports.handleMessage = function(hook_name, context, callback){
+exports.handleMessage = function (hook_name, context, callback) {
   // Firstly ignore any request that aren't about chat
-  var isHeaderMessage = false;
-  var isFooterMessage = false;
-  if(context){
-    if(context.message && context.message){
-      if(context.message.type === 'COLLABROOM'){
-        if(context.message.data){ 
-          if(context.message.data.type){
-            if(context.message.data.type === 'header'){
+  let isHeaderMessage = false;
+  let isFooterMessage = false;
+  if (context) {
+    if (context.message && context.message) {
+      if (context.message.type === 'COLLABROOM') {
+        if (context.message.data) {
+          if (context.message.data.type) {
+            if (context.message.data.type === 'header') {
               isHeaderMessage = true;
-            } 
-            if(context.message.data.type === 'footer'){
+            }
+            if (context.message.data.type === 'footer') {
               isFooterMessage = true;
             }
           }
@@ -39,13 +38,13 @@ exports.handleMessage = function(hook_name, context, callback){
       }
     }
   }
-  if(!isHeaderMessage && !isFooterMessage){
+  if (!isHeaderMessage && !isFooterMessage) {
     callback(false);
     return false;
   }
 
-  var message = context.message.data;
-  /***
+  const message = context.message.data;
+  /** *
     What's available in a message?
      * action -- The action IE chatPosition
      * padId -- The padId of the pad both authors are on
@@ -53,41 +52,40 @@ exports.handleMessage = function(hook_name, context, callback){
      * message -- the actual message
      * myAuthorId -- The Id of the author who is trying to talk to the targetAuthorId
   ***/
-  if(message.action === 'sendHeaderMessage'){
-    authorManager.getAuthorName(message.myAuthorId, function(er, authorName){ // Get the authorname
-
-      var msg = {
-        type: "COLLABROOM",
-        data: { 
-          type: "CUSTOM",
+  if (message.action === 'sendHeaderMessage') {
+    authorManager.getAuthorName(message.myAuthorId, (er, authorName) => { // Get the authorname
+      const msg = {
+        type: 'COLLABROOM',
+        data: {
+          type: 'CUSTOM',
           payload: {
-            action: "recieveHeaderMessage",
+            action: 'recieveHeaderMessage',
             authorId: message.myAuthorId,
-            authorName: authorName,
+            authorName,
             padId: message.padId,
-            message: message.message
-          }
-        }
+            message: message.message,
+          },
+        },
       };
       sendToRoom(message, msg);
       saveRoomHeader(message.padId, message.message);
     });
   }
 
-  if(message.action === 'sendFooterMessage'){
-    authorManager.getAuthorName(message.myAuthorId, function(er, authorName){ // Get the authorname
-      var msg = {
-        type: "COLLABROOM",
+  if (message.action === 'sendFooterMessage') {
+    authorManager.getAuthorName(message.myAuthorId, (er, authorName) => { // Get the authorname
+      const msg = {
+        type: 'COLLABROOM',
         data: {
-          type: "CUSTOM",
+          type: 'CUSTOM',
           payload: {
-            action: "recieveFooterMessage",
+            action: 'recieveFooterMessage',
             authorId: message.myAuthorId,
-            authorName: authorName,
+            authorName,
             padId: message.padId,
-            message: message.message
-          }
-        }
+            message: message.message,
+          },
+        },
       };
       sendToRoom(message, msg);
       saveRoomFooter(message.padId, message.message);
@@ -95,68 +93,65 @@ exports.handleMessage = function(hook_name, context, callback){
   }
 
 
-  if(isHeaderMessage || isFooterMessage){
+  if (isHeaderMessage || isFooterMessage) {
     callback([null]);
-  }else{
+  } else {
     callback(true);
   }
+};
 
+function saveRoomFooter(padId, message) {
+  console.log('Save footer');
+  db.set(`footer:${padId}`, message);
 }
 
-function saveRoomFooter(padId, message){
-console.log("Save footer");
-  db.set("footer:"+padId, message);
+function saveRoomHeader(padId, message) {
+  db.set(`header:${padId}`, message);
 }
 
-function saveRoomHeader(padId, message){
-  db.set("header:"+padId, message);
-}
-
-function sendToRoom(message, msg){
-  var bufferAllows = true; // Todo write some buffer handling for protection and to stop DDoS -- myAuthorId exists in message.
-  if(bufferAllows){
-    setTimeout(function(){ // This is bad..  We have to do it because ACE hasn't redrawn by the time the chat has arrived
-      padMessageHandler.handleCustomObjectMessage(msg, false, function(){
+function sendToRoom(message, msg) {
+  const bufferAllows = true; // Todo write some buffer handling for protection and to stop DDoS -- myAuthorId exists in message.
+  if (bufferAllows) {
+    setTimeout(() => { // This is bad..  We have to do it because ACE hasn't redrawn by the time the chat has arrived
+      padMessageHandler.handleCustomObjectMessage(msg, false, () => {
         // TODO: Error handling.
-      })
+      });
     }
     , 100);
   }
 }
 
-exports.clientVars = function(hook, pad, callback){
-  var padId = pad.pad.id;
-  db.get("header:"+padId, function(err, value){
-
-    var msg = {
-      type: "COLLABROOM",
+exports.clientVars = function (hook, pad, callback) {
+  const padId = pad.pad.id;
+  db.get(`header:${padId}`, (err, value) => {
+    const msg = {
+      type: 'COLLABROOM',
       data: {
-        type: "CUSTOM",
+        type: 'CUSTOM',
         payload: {
-          action: "recieveHeaderMessage",
-          padId: padId,
-          message: value
-        }
-      }
-    }
+          action: 'recieveHeaderMessage',
+          padId,
+          message: value,
+        },
+      },
+    };
     sendToRoom(false, msg);
   });
 
-  db.get("footer:"+padId, function(err, value){
-
-    var msg = {
-      type: "COLLABROOM",
+  db.get(`footer:${padId}`, (err, value) => {
+    const msg = {
+      type: 'COLLABROOM',
       data: {
-        type: "CUSTOM",
+        type: 'CUSTOM',
         payload: {
-          action: "recieveFooterMessage",
-          padId: padId,
-          message: value
-        }
-      }
-    }
+          action: 'recieveFooterMessage',
+          padId,
+          message: value,
+        },
+      },
+    };
     sendToRoom(false, msg);
   });
 
   return callback();
-}
+};
